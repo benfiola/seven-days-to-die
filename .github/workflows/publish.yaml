@@ -7,6 +7,8 @@ on:
         description: "Manifest ID to build"
         required: true
 
+run-name: ${{inputs.manifest_id}}
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -15,14 +17,14 @@ jobs:
     environment:
       name: publish
     concurrency:
-      group: ${{github.workflow}}-${{github.event.inputs.manifest_id}}
+      group: ${{github.workflow}}-${{inputs.manifest_id}}
     steps:
       - name: checkout
         uses: actions/checkout@v4
       - name: calculate facts
         id: facts
         run: |
-          manifest_id="${{github.event.inputs.manifest_id}}"
+          manifest_id="${{inputs.manifest_id}}"
           docker_image="docker.io/${{env.image_base}}:${manifest_id}"
 
           echo "manifest_id=${manifest_id}" >> "${GITHUB_OUTPUT}"
