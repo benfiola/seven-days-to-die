@@ -1,5 +1,3 @@
-name: Manual Trigger Workflow with Inputs
-
 on:
   workflow_dispatch:
     inputs:
@@ -14,15 +12,18 @@ jobs:
       image_base: benfiola/seven-days-to-die
     environment:
       name: publish
+    concurrency:
+      group: ${{github.workflow}}-${{github.event.inputs.manifest_id}}
     steps:
       - name: checkout
         uses: actions/checkout@v4
       - name: calculate facts
         id: facts
         run: |
-          docker_tag="${{github.event.inputs.manifest_id}}-testing"
-          docker_image="docker.io/${{env.image_base}}:${docker_tag}"
+          manifest_id="${{github.event.inputs.manifest_id}}"
+          docker_image="docker.io/${{env.image_base}}:${manifest_id}"
 
+          echo "manifest_id=${manifest_id}" >> "${GITHUB_OUTPUT}"
           echo "docker_image=${docker_image}" >> "${GITHUB_OUTPUT}"
       - name: docker login
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
@@ -35,4 +36,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{steps.facts.outputs.docker_image}}
+          tags: |
+            ${{steps.facts.outputs.docker_image}}
+          build-args: |
+            MANIFEST_ID=${{steps.facts.outputs.manifest_id}}
