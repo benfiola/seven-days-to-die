@@ -1,0 +1,27 @@
+{
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "golang.go",
+        "rohit-gohri.format-code-action"
+      ],
+      "settings": {
+        "editor.codeActionsOnSave": [
+          "source.organizeImports",
+          "source.formatDocument"
+        ],
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[go]": {
+          "editor.defaultFormatter": "golang.go"
+        }
+      }
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.23.4"
+    }
+  },
+  "image": "ubuntu:noble"
+}
