@@ -169,11 +169,11 @@ func extract(src string, dest string) error {
 	}
 
 	if strings.HasSuffix(src, ".zip") {
-		return runCmd([]string{"unzip", src, "-d", dest}, execOpts{})
+		return runCmd([]string{"unzip", "-o", src, "-d", dest}, execOpts{})
 	} else if strings.HasSuffix(src, ".tar.gz") {
-		return runCmd([]string{"tar", "xzf", src, "-C", dest}, execOpts{})
+		return runCmd([]string{"tar", "--overwrite", "-xzf", src, "-C", dest}, execOpts{})
 	} else if strings.HasSuffix(src, ".rar") {
-		return runCmd([]string{"unrar", "-x", src, dest}, execOpts{})
+		return runCmd([]string{"unrar", "-f", "-x", src, dest}, execOpts{})
 	}
 	return fmt.Errorf("unrecongized file type %s", src)
 }
