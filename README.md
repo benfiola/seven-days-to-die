@@ -20,13 +20,14 @@ This docker image is hosted on the Docker hub. You can pull this image at `docke
 
 The docker image is configured purely through the environment:
 
-| Variable       | Default | Description                                                                                 |
-| -------------- | ------- | ------------------------------------------------------------------------------------------- |
-| GID            | 1000    | The GID to run the server as                                                                |
-| MOD_URLS       |         | A comma-separated list of URLs to be downloaded and extracted to the `[server]/Mods` folder |
-| ROOT_URLS      |         | A comma-separated list of URLs to be downloaded and extracted to the `[server]` folder      |
-| SETTING\_[Key] |         | Defines a property named `[Key]` in the `[server]/serverconfig.xml` file                    |
-| UID            | 1000    | The UID to run the server as                                                                |
+| Variable            | Default | Description                                                                                 |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| DELETE_DEFAULT_MODS | 0       | Delete the default mods that come with the game. Some overhaul mods require this.           |
+| GID                 | 1000    | The GID to run the server as                                                                |
+| MOD_URLS            |         | A comma-separated list of URLs to be downloaded and extracted to the `[server]/Mods` folder |
+| ROOT_URLS           |         | A comma-separated list of URLs to be downloaded and extracted to the `[server]` folder.     |
+| SETTING\_[Key]      |         | Defines a property named `[Key]` in the `[server]/serverconfig.xml` file                    |
+| UID                 | 1000    | The UID to run the server as                                                                |
 
 ## Server Data
 

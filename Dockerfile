@@ -42,6 +42,8 @@ COPY --from=entrypoint /entrypoint /entrypoint
 
 ENV UID=1000
 ENV GID="${UID}"
+EXPOSE 8080/tcp
+EXPOSE 8081/tcp
 EXPOSE 26900/udp
 EXPOSE 26900/tcp
 EXPOSE 26901/udp

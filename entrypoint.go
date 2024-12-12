@@ -17,18 +17,19 @@ import (
 )
 
 var (
-	folderData       = "/data"
-	folderGenerated  = "/generated"
-	folderServer     = "/server"
-	envGid           = "GID"
-	envModUrls       = "MOD_URLS"
-	envRootUrls      = "ROOT_URLS"
-	envSettingPrefix = "SETTING_"
-	envUid           = "UID"
-	logger           = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	userGid          = "1000"
-	userName         = "sdtd"
-	userUid          = "1000"
+	folderData           = "/data"
+	folderGenerated      = "/generated"
+	folderServer         = "/server"
+	envDeleteDefaultMods = "DELETE_DEFAULT_MODS"
+	envGid               = "GID"
+	envModUrls           = "MOD_URLS"
+	envRootUrls          = "ROOT_URLS"
+	envSettingPrefix     = "SETTING_"
+	envUid               = "UID"
+	logger               = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	userGid              = "1000"
+	userName             = "sdtd"
+	userUid              = "1000"
 )
 
 // user is a struct containing the uid and gid of a local user
@@ -157,15 +158,12 @@ func extract(src string, dest string) error {
 	logger.Info("extract", "src", src, "dest", dest)
 
 	_, err := os.Lstat(dest)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
+	if os.IsNotExist(err) {
 		logger.Info("create directory", "path", dest)
 		err = os.MkdirAll(dest, 0755)
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		return err
 	}
 
 	if strings.HasSuffix(src, ".zip") {
@@ -184,8 +182,6 @@ type downloadCb func(path string) error
 // Returns an error if the download fails.
 // Returns an error if the callback returns an error.
 func download(url string, cb downloadCb) error {
-	logger.Info("download", "url", url)
-
 	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
@@ -200,6 +196,7 @@ func download(url string, cb downloadCb) error {
 	}
 	defer handle.Close()
 
+	logger.Info("download", "url", url, "file", tempFile)
 	response, err := http.Get(url)
 	if err != nil {
 		return err
@@ -345,18 +342,49 @@ func writeServerSettings(data map[string]string, path string) error {
 	return os.WriteFile(path, []byte(xml.Header+"\n"+string(dataBytes)), 0755)
 }
 
+// Clears a directory of its contents by deleting the folder and recreating it
+func clearDirectory(path string) error {
+	_, err := os.Lstat(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	if err == nil {
+		logger.Info("remove directory", "path", path)
+		err = os.RemoveAll(path)
+		if err != nil {
+			return err
+		}
+	}
+
+	logger.Info("create directory", "path", path)
+	err = os.MkdirAll(path, 0755)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Performs initial setup and the launches the seven days to die server.
 // Assumes that the local runtime environment has been bootstrapped.
 // Returns an error if any part of the process fails.
 // See: [bootstrap].
 func entrypoint() error {
+	modFolder := filepath.Join(folderServer, "Mods")
+	if os.Getenv(envDeleteDefaultMods) == "1" {
+		err := clearDirectory(modFolder)
+		if err != nil {
+			return err
+		}
+	}
+
 	rootUrls := parseEnvList(envRootUrls)
 	err := installUrls(folderServer, rootUrls...)
 	if err != nil {
 		return err
 	}
 
-	modFolder := filepath.Join(folderServer, "Mods")
 	modUrls := parseEnvList(envModUrls)
 	err = installUrls(modFolder, modUrls...)
 	if err != nil {
@@ -370,9 +398,15 @@ func entrypoint() error {
 	}
 	settings = merge(
 		settings,
+		map[string]string{
+			"TelnetEnabled":       "true", // by default, enable telnet
+			"WebDashboardEnabled": "true", // by default, enable web dashboard
+		},
 		getEnvServerSettings(),
 		map[string]string{
-			"UserDataFolder": folderData,
+			"TelnetPort":       "8081",     // force telnet port to match exposed docker port
+			"UserDataFolder":   folderData, // force user data folder to be located at [folderData]
+			"WebDashboardPort": "8080",     // force web dashboard port to match exposed docker port
 		},
 	)
 	err = writeServerSettings(settings, settingsFile)
