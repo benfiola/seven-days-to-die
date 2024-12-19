@@ -23,7 +23,7 @@ RUN echo "remove ubuntu user" && \
     useradd --gid=sdtd --system --uid=1000 --home /data sdtd && \
     echo "install apt dependencies" && \
     apt -y update && \
-    apt -y install curl gosu tar unrar-free zip && \
+    apt -y install curl gosu tar unrar-free vim zip && \
     echo "install DepotDownloader" && \
     curl -o archive.zip -fsSL "https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_${DEPOT_DOWNLOADER_VERSION}/DepotDownloader-linux-x64.zip" && \
     mkdir -p extract && \
