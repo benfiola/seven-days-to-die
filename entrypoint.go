@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	osuser "os/user"
 )
@@ -43,12 +47,108 @@ func (u user) String() string {
 	return fmt.Sprintf("%d:%d", u.uid, u.gid)
 }
 
+// Reads from [net.Conn] until a pattern is found or a timeout occurs.
+// Raises an error if the connection read fails.
+// Raises an error if a timeout occurs
+func readUntilPattern(conn net.Conn, pattern string, timeout time.Duration) error {
+	start := time.Now()
+	data := ""
+	buf := make([]byte, 128)
+	for {
+		now := time.Now()
+		if now.Sub(start) >= timeout {
+			return fmt.Errorf("timed out reading until pattern")
+		}
+		read, err := conn.Read(buf)
+		if err != nil {
+			return nil
+		}
+		data += string(buf[:read])
+		if strings.Contains(data, pattern) {
+			break
+		}
+	}
+	return nil
+}
+
+// dialServerCb is a callback provided to [dialServer] - allowing callers to futher operate on a connection to the server
+type dialServerCb func(conn net.Conn) error
+
+// dialServer connects to the running seven days to die server, waits for the server to accept commands, and then invokes the provided callback with the opened connection.
+// Raises an error if the server is not connectable
+// Raises an error if the server times out while waiting to accept commands
+// Raises an error if the callback raises an error
+func dialServer(cb dialServerCb) error {
+	addr := "localhost:8081"
+
+	logger.Info("dialing server", "addr", addr)
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	pattern := "Press 'help' to get a list of all commands. Press 'exit' to end session."
+	err = readUntilPattern(conn, pattern, 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	return cb(conn)
+}
+
+// signalHandler holds data associated with signal handling
+// Should not be created directly, see [handleSignals]
+type signalHandler struct {
+	signal        *os.Signal
+	signalChannel chan os.Signal
+	signalHandled chan bool
+}
+
+// Unregisters a signal handler from the signaling system
+func (sh *signalHandler) Stop() {
+	signal.Stop(sh.signalChannel)
+}
+
+// Waits for the [signalHandlerCallback] to finish *only if* a signal was caught.  Otherwise, is a no-op.
+func (sh *signalHandler) Wait() {
+	if sh.signal == nil {
+		return
+	}
+	logger.Info("waiting for signal handler")
+	<-sh.signalHandled
+}
+
+// signalHandlerCallback is the callback invoked when a signal is intercepted
+type signalHandlerCallback func(sig os.Signal)
+
+// Creates a signal handler that listens to common signals (SIGINT, SIGTERM) and calls the provided [signalHandlerCallback].
+func handleSignals(callback signalHandlerCallback) *signalHandler {
+	sh := signalHandler{
+		signal:        nil,
+		signalChannel: make(chan os.Signal, 1),
+		signalHandled: make(chan bool, 1),
+	}
+
+	signal.Notify(sh.signalChannel, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		signal := <-sh.signalChannel
+		sh.signal = &signal
+		logger.Info("caught signal", "signal", *sh.signal)
+		callback(*sh.signal)
+		sh.signalHandled <- true
+	}()
+
+	return &sh
+}
+
 // execOpts are used to customize [runCmd] behavior.
 type execOpts struct {
-	AsUser user
-	Cwd    string
-	Env    []string
-	Attach bool
+	AsUser  user
+	Attach  bool
+	Cwd     string
+	Env     []string
+	Signals bool
 }
 
 // Helper method to run a command [cmdSlice] with the given options [execOpts].
@@ -65,7 +165,7 @@ func runCmd(cmdSlice []string, opts execOpts) error {
 	}
 
 	cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
-
+	var signalHandler *signalHandler
 	if opts.Attach {
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
@@ -77,9 +177,20 @@ func runCmd(cmdSlice []string, opts execOpts) error {
 	if opts.Env != nil {
 		cmd.Env = opts.Env
 	}
+	if opts.Signals {
+		signalHandler = handleSignals(func(sig os.Signal) {
+			cmd.Process.Signal(sig)
+		})
+	}
 
 	logger.Info("run cmd", "cmd", strings.Join(cmdSlice, " "))
-	return cmd.Run()
+	err := cmd.Run()
+
+	if signalHandler != nil {
+		signalHandler.Wait()
+	}
+
+	return err
 }
 
 // Gets the current user as a [user] object.
@@ -147,7 +258,7 @@ func passthrough(args ...string) error {
 		return err
 	}
 
-	return runCmd(args, execOpts{AsUser: user, Attach: true})
+	return runCmd(args, execOpts{AsUser: user, Attach: true, Signals: true})
 }
 
 // Extracts the file at [src] to the directory at [dest].  Creates [dest] if the path does not exist.
@@ -243,14 +354,33 @@ func parseEnvList(varName string) []string {
 	return items
 }
 
+// Shuts down a seven days to die server by connecting to its telnet port and sending the 'shutdown' command.
+// Raises an error if connecting to the server fails.
+// Raises an error if the server fails to send the command.
+func shutdownSdtdServer() error {
+	return dialServer(func(conn net.Conn) error {
+		_, err := conn.Write([]byte("shutdown\n"))
+		return err
+	})
+}
+
 // Starts the seven days to die server.
 // Returns an error if the underlying command fails.
 func startSdtdServer(config string) error {
 	logger.Info("start sdtd server", "config", config)
 
+	signalHandler := handleSignals(func(sig os.Signal) {
+		shutdownSdtdServer()
+	})
+	defer signalHandler.Stop()
+
 	env := append(os.Environ(), "LD_LIBRARY_PATH=.")
 	cmd := []string{"./7DaysToDieServer.x86_64", "-batchmode", fmt.Sprintf("-configfile=%s", config), "-dedicated", "-logfile", "-nographics", "-quit"}
-	return runCmd(cmd, execOpts{Attach: true, Cwd: folderServer, Env: env})
+	err := runCmd(cmd, execOpts{Attach: true, Cwd: folderServer, Env: env})
+
+	signalHandler.Wait()
+
+	return err
 }
 
 // serverSettings is the root XML element stored in a seven days to die server settings XML file.
@@ -417,6 +547,18 @@ func entrypoint() error {
 	return startSdtdServer(settingsFile)
 }
 
+// Checks the health of the seven days to die server by attempting to connect to the server's telnet port.
+// If the connection fails, returns an error
+func checkHealth() error {
+	healthy := false
+	err := dialServer(func(conn net.Conn) error {
+		healthy = true
+		return nil
+	})
+	logger.Info("health check", "healthy", healthy)
+	return err
+}
+
 // Updates the non-root user to assume the uid/gid of [toUser].
 // Returns an error if [toUser] is the root user.
 // Returns an error if the non-root user cannot be found.
@@ -501,7 +643,7 @@ func relaunchEntrypoint(user user) error {
 
 	cmd := []string{executable}
 	env := append(os.Environ(), "_BOOTSTRAPPED=1")
-	return runCmd(cmd, execOpts{AsUser: user, Attach: true, Env: env})
+	return runCmd(cmd, execOpts{AsUser: user, Attach: true, Env: env, Signals: true})
 }
 
 // Bootstraps the runtime environment.
@@ -552,7 +694,12 @@ func bootstrap() error {
 func main() {
 	var err error
 	if len(os.Args) > 1 {
-		err = passthrough(os.Args[1:]...)
+		switch os.Args[1] {
+		case "health":
+			err = checkHealth()
+		default:
+			err = passthrough(os.Args[1:]...)
+		}
 	} else if os.Getenv("_BOOTSTRAPPED") == "1" {
 		err = entrypoint()
 	} else {

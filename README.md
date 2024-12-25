@@ -7,7 +7,7 @@ While other 7 Days to Die dedicated server docker images exist and certainly wor
 - Provides docker images tagged to [specific builds](https://steamdb.info/depot/294422/manifests/) of the dedicated server
 - Simplifies mod and 'root file' (i.e., data installed to server root folder) installation
 - Does not provide update mechanisms for games, mods or otherwise
-- Does not provide built-in health-check mechanisms
+- Does not provide built-in health-check monitoring
 - Does not provide built-in backup mechanisms
 
 It's assumed that health checks, backups and updates are managed externally via infrastructure-as-code and container orchestration.
@@ -26,12 +26,16 @@ The docker image is configured purely through the environment:
 | GID                 | 1000    | The GID to run the server as                                                                |
 | MOD_URLS            |         | A comma-separated list of URLs to be downloaded and extracted to the `[server]/Mods` folder |
 | ROOT_URLS           |         | A comma-separated list of URLs to be downloaded and extracted to the `[server]` folder.     |
-| SETTING\_[Key]      |         | Defines a property named `[Key]` in the `[server]/serverconfig.xml` file                    |
+| SETTING\_[Key]      |         | Defines a property named `[Key]` in the `serverconfig.xml` file                             |
 | UID                 | 1000    | The UID to run the server as                                                                |
 
 ## Server Data
 
 The docker image is configured to host server data in the `/data` folder. For persistence, you will need to mount a local path (or, _PersistentVolume_ if Kubernetes, to the `/data` folder).
+
+## Health check
+
+You can perform a health check on a running server by running the `/entrypoint health` command. This is useful for configuring things like Kubernetes liveness/readiness probes.
 
 ## Entrypoint
 
