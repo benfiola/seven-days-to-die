@@ -6,6 +6,7 @@ While other 7 Days to Die dedicated server docker images exist and certainly wor
 
 - Provides docker images tagged to [specific builds](https://steamdb.info/depot/294422/manifests/) of the dedicated server. These builds are part of the container, not downloaded on launch.
 - Simplifies mod and 'root file' (i.e., data installed to server root folder) installation
+- Generates server settings from environment variables
 - Does not provide update mechanisms for games, mods or otherwise
 - Does not provide built-in health-check monitoring
 - Does not provide built-in alerting

@@ -457,7 +457,7 @@ func writeServerSettings(data map[string]string, path string) error {
 	for key := range data {
 		keys = append(keys, key)
 	}
-	keys = sort.StringSlice(keys)
+	sort.Strings(keys)
 	for _, Name := range keys {
 		Value := data[Name]
 		logger.Info("setting", "name", Name, "value", Value)
