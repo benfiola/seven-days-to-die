@@ -4,11 +4,13 @@ This repo provides the necessary code to create a [7 Days to Die](https://7dayst
 
 While other 7 Days to Die dedicated server docker images exist and certainly work, this image is simplified. It:
 
-- Provides docker images tagged to [specific builds](https://steamdb.info/depot/294422/manifests/) of the dedicated server
+- Provides docker images tagged to [specific builds](https://steamdb.info/depot/294422/manifests/) of the dedicated server. These builds are part of the container, not downloaded on launch.
 - Simplifies mod and 'root file' (i.e., data installed to server root folder) installation
 - Does not provide update mechanisms for games, mods or otherwise
 - Does not provide built-in health-check monitoring
+- Does not provide built-in alerting
 - Does not provide built-in backup mechanisms
+- Logs to stdout/stderr
 
 It's assumed that health checks, backups and updates are managed externally via infrastructure-as-code and container orchestration.
 
@@ -32,6 +34,14 @@ The docker image is configured purely through the environment:
 ## Server Data
 
 The docker image is configured to host server data in the `/data` folder. For persistence, you will need to mount a local path (or, _PersistentVolume_ if Kubernetes, to the `/data` folder).
+
+## UID/GID
+
+The docker image is configured to run under a non-root user.
+
+If a container is run as the root user, the entrypoint will attempt to take ownership of necessary files under the values of environment variables `UID` and `GID` and relaunch itself.
+
+If a container is run as a non-root user, the entrypoint will run as this non-root user. It's assumed that necessary files are already owned by the current non-root user.
 
 ## Health check
 
