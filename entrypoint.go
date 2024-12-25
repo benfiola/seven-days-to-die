@@ -529,11 +529,11 @@ func entrypoint() error {
 	settings = merge(
 		settings,
 		map[string]string{
-			"TelnetEnabled":       "true", // by default, enable telnet
 			"WebDashboardEnabled": "true", // by default, enable web dashboard
 		},
 		getEnvServerSettings(),
 		map[string]string{
+			"TelnetEnabled":    "true",     // force telnet to be enabled (for graceful shutdown and health checks)
 			"TelnetPort":       "8081",     // force telnet port to match exposed docker port
 			"UserDataFolder":   folderData, // force user data folder to be located at [folderData]
 			"WebDashboardPort": "8080",     // force web dashboard port to match exposed docker port
