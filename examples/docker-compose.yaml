@@ -1,0 +1,16 @@
+services:
+  sdtd:
+    volumes:
+      # use local folder 'example' for server data
+      - ./example:/data
+    environment:
+      # refer to ./default-serverconfig.xml for property names and values
+      SETTING_ServerName: example
+      SETTING_Region: NorthAmericaWest
+    image: docker.io/benfiola/seven-days-to-die:6852366042385286885
+    ports:
+      - 26900:26900/udp
+      - 26900:26900
+      - 26901:26901
+      - 26902:26902
+      - 26903:26903

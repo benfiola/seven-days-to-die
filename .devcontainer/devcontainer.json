@@ -4,6 +4,7 @@
       "extensions": [
         "esbenp.prettier-vscode",
         "golang.go",
+        "redhat.vscode-xml",
         "rohit-gohri.format-code-action"
       ],
       "settings": {
@@ -14,6 +15,9 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "[go]": {
           "editor.defaultFormatter": "golang.go"
+        },
+        "[xml]": {
+          "editor.defaultFormatter": "redhat.vscode-xml"
         }
       }
     }

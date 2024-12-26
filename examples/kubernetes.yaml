@@ -1,0 +1,53 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seven-days-to-die
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seven-days-to-die
+  template:
+    metadata:
+      labels:
+        app: seven-days-to-die
+    spec:
+      containers:
+        - name: seven-days-to-die
+          image: docker.io/benfiola/seven-days-to-die:6852366042385286885
+          env:
+            # refer to ./default-serverconfig.xml for property names and values
+            - name: SETTING_ServerName
+              value: example
+            - name: SETTING_Region
+              value: NorthAmericaWest
+          ports:
+            - containerPort: 26900
+              name: tcp
+              protocol: TCP
+            - containerPort: 26900
+              name: udp1
+              protocol: UDP
+            - containerPort: 26901
+              name: udp2
+              protocol: UDP
+            - containerPort: 26902
+              name: udp3
+              protocol: UDP
+            - containerPort: 26903
+              name: udp4
+              protocol: UDP
+          volumeMounts:
+            # mounts the persistent volume claim 'data' to /data
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    # creates a persistent volume claim 'data' for the workload
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi

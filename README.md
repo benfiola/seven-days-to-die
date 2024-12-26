@@ -19,6 +19,13 @@ It's assumed that health checks, backups and updates are managed externally via 
 
 This docker image is hosted on the Docker hub. You can pull this image at `docker.io/benfiola/seven-days-to-die:[manifest-id]`. Because this image is designed to be pinned at specific game versions, there are no _latest_ images. Use [SteamDB](https://steamdb.info/depot/294422/manifests/) to find the current manifest ID.
 
+Here are some basic deployment examples:
+
+- [docker-compose](./examples/docker-compose.yaml)
+- [kubernetes](./examples/kubernetes.yaml)
+
+Additionally, [here](./examples/default-serverconfig.xml) is the default `serverconfig.xml` that ships with the game (as of manifest `6852366042385286885`).
+
 ## Configuration
 
 The docker image is configured purely through the environment:
