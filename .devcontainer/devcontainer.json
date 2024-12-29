@@ -27,5 +27,6 @@
       "version": "1.23.4"
     }
   },
-  "image": "ubuntu:noble"
+  "image": "ubuntu:noble",
+  "postCreateCommand": ".devcontainer/post-create.sh"
 }
