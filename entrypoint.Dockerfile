@@ -4,9 +4,9 @@ WORKDIR /app
 
 ADD go.mod go.mod
 ADD go.sum go.sum
-ADD entrypoint.go entrypoint.go
+ADD cmd cmd
 
-RUN go build -o /entrypoint entrypoint.go
+RUN go build -o /entrypoint cmd/entrypoint/main.go
 
 
 FROM docker.io/ubuntu:noble

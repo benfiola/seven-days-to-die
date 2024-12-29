@@ -38,7 +38,7 @@ jobs:
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
         with:
           context: .
-          file: ./Dockerfile
+          file: ./entrypoint.Dockerfile
           push: true
           tags: |
             ${{steps.facts.outputs.docker_image}}

@@ -57,7 +57,7 @@ You can perform a health check on a running server by running the `/entrypoint h
 
 ## Entrypoint
 
-The entrypoint is implemented in golang and is defined at [./entrypoint.go](./entrypoint.go). It's (hopefully) well-documented - feel free to take a look!
+The entrypoint is implemented in golang and is defined at [./cmd/entrypoint/main.go](./cmd/entrypoint/main.go). It's (hopefully) well-documented - feel free to take a look!
 
 ## Development
 
