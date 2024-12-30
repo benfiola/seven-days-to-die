@@ -18,4 +18,4 @@ jobs:
       - name: run
         run: |
           docker build -f autopublish.Dockerfile -t autopublish:latest .
-          docker run --rm -it autopublish:latest
+          docker run --rm autopublish:latest
