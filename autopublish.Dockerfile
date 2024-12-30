@@ -10,8 +10,7 @@ RUN go build -o /autopublish cmd/autopublish/main.go
 
 
 FROM cm2network/steamcmd
-USER root
-RUN ln -s /home/steam/steamcmd.sh /usr/local/bin/steamcmd
+ENV PATH="/home/steam/steamcmd:${PATH}"
+RUN ln -s /home/steam/steamcmd/steamcmd.sh /home/steam/steamcmd/steamcmd
 COPY --from=autopublish /autopublish /autopublish
-USER steam
 CMD ["/autopublish"]
