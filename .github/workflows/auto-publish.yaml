@@ -6,7 +6,7 @@ on:
     - cron: "0 * * * *"
 
 jobs:
-  publish:
+  auto-publish:
     runs-on: ubuntu-latest
     environment:
       name: auto-publish
