@@ -64,7 +64,3 @@ The entrypoint is implemented in golang and is defined at [./cmd/entrypoint/main
 This project was written using [VSCode](https://code.visualstudio.com/) and the [devcontainers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. Use these for a streamlined development experience.
 
 PRs and feedback are welcome.
-
-## TODO
-
-- Automate creating new builds
