@@ -18,4 +18,4 @@ jobs:
       - name: run
         run: |
           docker build -f autopublish.Dockerfile -t autopublish:latest .
-          docker run --rm autopublish:latest
+          docker run --rm -e "STEAM_USERNAME=${{secrets.STEAM_USERNAME}}" -e "STEAM_PASSWORD=${{secrets.STEAM_PASSWORD}}" -e "GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}" autopublish:latest
