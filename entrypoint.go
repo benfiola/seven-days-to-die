@@ -249,7 +249,7 @@ func (api *Api) DownloadSdtd(manifestId string) error {
 		return err
 	}
 	if !exists {
-		api.Logger.Info("clear cache")
+		api.Logger.Info("download sdtd", "manifest", manifestId)
 		paths, err := api.ListDir(api.Directories["cache"])
 		if err != nil {
 			return err
@@ -259,7 +259,6 @@ func (api *Api) DownloadSdtd(manifestId string) error {
 			return err
 		}
 		cacheTmp := filepath.Join(api.Directories["cache"], ".tmp")
-		api.Logger.Info("download sdtd to cache", "manifest", manifestId)
 		err = api.DepotDownload("294420", "294422", manifestId, cacheTmp, helperapi.DepotDownloadOpts{})
 		if err != nil {
 			return err

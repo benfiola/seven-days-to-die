@@ -9,7 +9,7 @@ on:
 run-name: ${{github.sha}}
 
 jobs:
-  prepare:
+  publish:
     runs-on: ubuntu-latest
     env:
       image_base: benfiola/seven-days-to-die
