@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       image_base: benfiola/seven-days-to-die
+    environment:
+      name: publish
     concurrency:
       group: ${{github.workflow}}
     permissions:
