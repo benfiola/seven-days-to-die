@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -223,15 +224,59 @@ func (api *Api) InstallMods(path string, mods ...string) error {
 // Returns an error if the subsequent folder creation fails.
 func (api *Api) DeleteDefaultMods() error {
 	api.Logger.Info("delete default mods")
-
 	path := filepath.Join(api.Directories["sdtd"], "Mods")
-	api.Logger.Info("delete directory", "path", path)
-	err := os.RemoveAll(path)
+	subpaths, err := api.ListDir(path)
 	if err != nil {
 		return err
 	}
-	api.Logger.Info("create directory", "path", path)
-	err = os.MkdirAll(path, 0755)
+	err = api.RemovePaths(subpaths...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Downloads sdtd with DepotDownloader
+func (api *Api) DownloadSdtd(manifestId string) error {
+	cachePath := filepath.Join(api.Directories["cache"], manifestId)
+	_, err := os.Lstat(cachePath)
+	exists := true
+	if errors.Is(err, os.ErrNotExist) {
+		exists = false
+		err = nil
+	}
+	if err != nil {
+		return err
+	}
+	if !exists {
+		api.Logger.Info("clear cache")
+		paths, err := api.ListDir(api.Directories["cache"])
+		if err != nil {
+			return err
+		}
+		err = api.RemovePaths(paths...)
+		if err != nil {
+			return err
+		}
+		cacheTmp := filepath.Join(api.Directories["cache"], ".tmp")
+		api.Logger.Info("download sdtd to cache", "manifest", manifestId)
+		err = api.DepotDownload("294420", "294422", manifestId, cacheTmp, helperapi.DepotDownloadOpts{})
+		if err != nil {
+			return err
+		}
+		_, err = api.RunCommand([]string{"mv", cacheTmp, cachePath}, helperapi.CmdOpts{})
+		if err != nil {
+			return err
+		}
+	}
+	api.Logger.Info("copy sdtd from cache")
+	_, err = api.RunCommand([]string{"cp", "-R", fmt.Sprintf("%s/.", cachePath), api.Directories["sdtd"]}, helperapi.CmdOpts{})
+	if err != nil {
+		return err
+	}
+	api.Logger.Info("set server binary executable")
+	serverBin := filepath.Join(api.Directories["sdtd"], "7DaysToDieServer.x86_64")
+	err = os.Chmod(serverBin, 0755)
 	if err != nil {
 		return err
 	}
@@ -241,6 +286,7 @@ func (api *Api) DeleteDefaultMods() error {
 // EntrypointConfig is the configuration for the
 type EntrypointConfig struct {
 	DeleteDefaultMods bool     `env:"DELETE_DEFAULT_MODS"`
+	ManifestId        string   `env:"MANIFEST_ID"`
 	ModUrls           []string `env:"MOD_URLS"`
 	RootUrls          []string `env:"ROOT_URLS"`
 }
@@ -249,8 +295,15 @@ type EntrypointConfig struct {
 // Assumes that the local runtime environment has been bootstrapped.
 // Returns an error if any part of the process fails.
 func Entrypoint(ctx context.Context, api Api) error {
+	api.Logger.Info("entrypoint")
+
 	config := EntrypointConfig{}
 	err := api.ParseEnv(&config)
+	if err != nil {
+		return err
+	}
+
+	err = api.DownloadSdtd(config.ManifestId)
 	if err != nil {
 		return err
 	}
@@ -315,9 +368,10 @@ var Version string
 func main() {
 	(&helper.Helper{
 		Directories: map[string]string{
-			"sdtd":      "/sdtd",
-			"generated": "/generated",
+			"cache":     "/cache",
 			"data":      "/data",
+			"generated": "/generated",
+			"sdtd":      "/sdtd",
 		},
 		Entrypoint:  RunCallback(Entrypoint),
 		HealthCheck: RunCallback(HealthCheck),

@@ -1,1 +1,5 @@
-.vscode
+.vscode/*
+!.vscode/launch.json.template
+.tmp
+DepotDownloader
+entrypoint

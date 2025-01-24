@@ -1,13 +1,16 @@
 services:
   sdtd:
     volumes:
-      # use local folder 'example' for server data
-      - ./example:/data
+      # use local folder 'data' for server data
+      - ./data:/data
+      # use local folder 'cache' as a cache
+      - ./cache:/cache
     environment:
+      MANIFEST_ID: "6852366042385286885"
       # refer to ./default-serverconfig.xml for property names and values
       SETTING_ServerName: example
       SETTING_Region: NorthAmericaWest
-    image: docker.io/benfiola/seven-days-to-die:6852366042385286885
+    image: docker.io/benfiola/seven-days-to-die:latest
     ports:
       - 26900:26900/udp
       - 26900:26900

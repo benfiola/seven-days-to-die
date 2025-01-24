@@ -15,8 +15,10 @@ spec:
     spec:
       containers:
         - name: seven-days-to-die
-          image: docker.io/benfiola/seven-days-to-die:6852366042385286885
+          image: docker.io/benfiola/seven-days-to-die:latest
           env:
+            - name: MANIFEST_ID
+              value: "6852366042385286885"
             # refer to ./default-serverconfig.xml for property names and values
             - name: SETTING_ServerName
               value: example
@@ -42,6 +44,8 @@ spec:
             # mounts the persistent volume claim 'data' to /data
             - name: data
               mountPath: /data
+            - name: cache
+              mountPath: /cache
   volumeClaimTemplates:
     # creates a persistent volume claim 'data' for the workload
     - metadata:
@@ -51,3 +55,10 @@ spec:
         resources:
           requests:
             storage: 20Gi
+    - metadata:
+        name: cache
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
