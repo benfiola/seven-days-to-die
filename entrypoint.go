@@ -366,12 +366,13 @@ var Version string
 
 // The main function for the entrypoint.
 func main() {
+	wd, _ := os.Getwd()
 	(&helper.Helper{
 		Directories: map[string]string{
-			"cache":     "/cache",
-			"data":      "/data",
-			"generated": "/generated",
-			"sdtd":      "/sdtd",
+			"cache":     filepath.Join(wd, "cache"),
+			"data":      filepath.Join(wd, "data"),
+			"generated": filepath.Join(wd, "generated"),
+			"sdtd":      filepath.Join(wd, "sdtd"),
 		},
 		Entrypoint:  RunCallback(Entrypoint),
 		HealthCheck: RunCallback(HealthCheck),
