@@ -43,7 +43,7 @@ The docker image is configured purely through the environment:
 
 On startup, the docker image will attempt to download the 7 Days to Die dedicated server from Steam - using the `MANIFEST_ID` environment variable.
 
-If a local path (or, _PersistentVolume_, if Kubernetes) is mounted to the `/cache` directory, this directory will be used as a cache to minimize downloads.
+If a local path (or, _PersistentVolume_, if Kubernetes) is mounted to the `/cache` directory, this directory will be used as a cache to prevent re-downloading should the container be restarted.
 
 ## Server Data
 
