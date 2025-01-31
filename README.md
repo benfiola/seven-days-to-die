@@ -31,6 +31,8 @@ The docker image is configured purely through the environment:
 
 | Variable            | Default | Description                                                                                                                                              |
 | ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CACHE_ENABLED       | "false" | Cache dedicated server and mod files                                                                                                                     |
+| CACHE_SIZE_LIMIT    | "0"     | Size limit of file cache                                                                                                                                 |
 | DELETE_DEFAULT_MODS | 0       | Delete the default mods that come with the game. Some overhaul mods require this.                                                                        |
 | GID                 | 1000    | The GID to run the server as                                                                                                                             |
 | MANIFEST_ID         |         | The manifest ID (of the 7DTD dedicated server) to download. Use [SteamDB](https://steamdb.info/depot/294422/manifests/) to find the current manifest ID. |
@@ -39,11 +41,14 @@ The docker image is configured purely through the environment:
 | SETTING\_[Key]      |         | Defines a property named `[Key]` in the `serverconfig.xml` file                                                                                          |
 | UID                 | 1000    | The UID to run the server as                                                                                                                             |
 
-## Game Download and Caching
+## Downloading SDTD + Caching
 
-On startup, the docker image will attempt to download the 7 Days to Die dedicated server from Steam - using the `MANIFEST_ID` environment variable.
+On startup, the docker image will attempt to download the SDTD dedicated server version defined by the `MANIFEST_ID` environmnent variable.
 
-If a local path (or, _PersistentVolume_, if Kubernetes) is mounted to the `/cache` directory, this directory will be used as a cache to prevent re-downloading should the container be restarted.
+To prevent unnecessary rebuilds, this entrypoint supports file caching. If you mount a local path to `/cache`, and set `CACHE_ENABLED="true"` - the file cache is enabled. You can customize file cache sizes by setting the `CACHE_SIZE_LIMIT` environment variable to a size (in megabytes).
+
+> [!IMPORTANT]
+> If the file cache is enabled, the entrypoint will fail if the size limit is less than the size of the dedicated server + mods - ensure to give your file cache sufficient space!
 
 ## Server Data
 
