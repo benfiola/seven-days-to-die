@@ -1,8 +1,10 @@
-github.com/benfiola/game-server-helper v0.0.0-20250124212229-a2569895b4ad h1:+AdRyphhPT1z1O54Mqf7IFrz8KoHNDST653kP4VTtdc=
-github.com/benfiola/game-server-helper v0.0.0-20250124212229-a2569895b4ad/go.mod h1:NuqNpvKwuhLV4j7+lCKvQbNrRlmnO/tAzffh2a3Vi04=
+github.com/benfiola/game-server-helper v0.0.0-20250131201848-5d2dfbc20251 h1:aCO2x0yuxWTGlyMe+yEW3uIjlkyrLZd1ZTTAemm2SfE=
+github.com/benfiola/game-server-helper v0.0.0-20250131201848-5d2dfbc20251/go.mod h1:DPBcfqEKjahVzVoHpU8Z0MvUYX/TZUzR+FsGGF63oDE=
 github.com/caarlos0/env/v11 v11.3.1 h1:cArPWC15hWmEt+gWk7YBi7lEXTXCvpaSdCiZE2X5mCA=
 github.com/caarlos0/env/v11 v11.3.1/go.mod h1:qupehSf/Y0TUTsxKywqRt/vJjN5nz6vauiYEUUr8P4U=
 github.com/evanphx/json-patch/v5 v5.9.0 h1:kcBlZQbplgElYIlo/n1hJbls2z/1awpXxpRi0/FOJfg=
 github.com/evanphx/json-patch/v5 v5.9.0/go.mod h1:VNkHZ/282BpEyt/tObQO8s5CMPmYYq14uClGH4abBuQ=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

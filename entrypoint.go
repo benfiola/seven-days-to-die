@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -12,29 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/benfiola/game-server-helper/pkg/helper"
-	"github.com/benfiola/game-server-helper/pkg/helperapi"
+	helper "github.com/benfiola/game-server-helper/pkg"
 )
-
-// Api wraps [helperapi.Api] and adds sdtd specific methods to the struct
-type Api struct {
-	helper.Api
-}
-
-// Defines a callback that accepts a [context.Context] and an [Api]
-type Callback func(ctx context.Context, api Api) error
-
-// Converts a [Callback] into an [helper.Callback] for compatibility with [helper.Helper]
-func RunCallback(cb Callback) helper.Callback {
-	return func(ctx context.Context, parent helper.Api) error {
-		api := Api{Api: parent}
-		return cb(ctx, api)
-	}
-}
 
 // Conn wraps [net.Conn] and provides helper methods
 type Conn struct {
-	net.Conn
+	netConn net.Conn
+	ctx     context.Context
 }
 
 // Reads from [Conn] until a pattern is found or a timeout occurs.
@@ -49,7 +32,7 @@ func (conn Conn) ReadUntilPattern(pattern string, timeout time.Duration) error {
 		if now.Sub(start) >= timeout {
 			return fmt.Errorf("timed out reading until pattern")
 		}
-		read, err := conn.Read(buf)
+		read, err := conn.netConn.Read(buf)
 		if err != nil {
 			return nil
 		}
@@ -62,21 +45,21 @@ func (conn Conn) ReadUntilPattern(pattern string, timeout time.Duration) error {
 }
 
 // dialServerCb is a callback provided to [dialServer] - allowing callers to futher operate on a connection to the server
-type dialServerCb func(conn net.Conn) error
+type dialServerCb func(conn Conn) error
 
 // DialServer connects to the running seven days to die server, waits for the server to accept commands, and then invokes the provided callback with the opened connection.
 // Raises an error if the server is not connectable
 // Raises an error if the server times out while waiting to accept commands
 // Raises an error if the callback raises an error
-func (api *Api) DialServer(cb dialServerCb) error {
+func DialServer(ctx context.Context, cb dialServerCb) error {
 	addr := "localhost:8081"
-	api.Logger.Info("dialing server", "addr", addr)
+	helper.Logger(ctx).Info("dialing server", "addr", addr)
 	nconn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return err
 	}
-	conn := Conn{Conn: nconn}
-	defer conn.Close()
+	conn := Conn{ctx: ctx, netConn: nconn}
+	defer conn.netConn.Close()
 	pattern := "Press 'help' to get a list of all commands. Press 'exit' to end session."
 	err = conn.ReadUntilPattern(pattern, 5*time.Second)
 	if err != nil {
@@ -88,27 +71,27 @@ func (api *Api) DialServer(cb dialServerCb) error {
 // Shuts down a seven days to die server by connecting to its telnet port and sending the 'shutdown' command.
 // Raises an error if connecting to the server fails.
 // Raises an error if the server fails to send the command.
-func (api *Api) ShutdownServer() error {
-	api.Logger.Info("shutdown server")
-	return api.DialServer(func(conn net.Conn) error {
-		_, err := conn.Write([]byte("shutdown\n"))
+func ShutdownServer(ctx context.Context) error {
+	helper.Logger(ctx).Info("shutdown server")
+	return DialServer(ctx, func(conn Conn) error {
+		_, err := conn.netConn.Write([]byte("shutdown\n"))
 		return err
 	})
 }
 
 // Starts the seven days to die server.
 // Returns an error if the underlying command fails.
-func (api *Api) StartServer(config string) error {
-	api.Logger.Info("start server", "config", config)
+func StartServer(ctx context.Context, config string) error {
+	helper.Logger(ctx).Info("start server", "config", config)
 	cmdFinished := make(chan bool, 1)
-	unregister := api.HandleSignal(func(sig os.Signal) {
-		api.ShutdownServer()
+	unregister := helper.HandleSignal(ctx, func(sig os.Signal) {
+		ShutdownServer(ctx)
 		<-cmdFinished
 	})
 	defer unregister()
 	env := append(os.Environ(), "LD_LIBRARY_PATH=.")
 	cmd := []string{"./7DaysToDieServer.x86_64", "-batchmode", fmt.Sprintf("-configfile=%s", config), "-dedicated", "-logfile", "-nographics", "-quit"}
-	_, err := api.RunCommand(cmd, helperapi.CmdOpts{Attach: true, Cwd: api.Directories["sdtd"], Env: env})
+	_, err := helper.Command(ctx, cmd, helper.CmdOpts{Attach: true, Cwd: helper.Dirs(ctx)["sdtd"], Env: env, IgnoreSignals: true}).Run()
 	cmdFinished <- true
 	return err
 }
@@ -150,19 +133,22 @@ func (xss *XmlServerSettings) Map() ServerSettings {
 // Parses server settings from the seven days to die server root directory.  Assumes the data is unmodified.
 // Returns an error if the server settings configuration file is unreadable
 // Returns an error if the server settings data is unparseable
-func (api *Api) GetDefaultServerSettings() (ServerSettings, error) {
-	file := filepath.Join(api.Directories["sdtd"], "serverconfig.xml")
-	api.Logger.Info("get default server settings", "path", file)
-	xss := XmlServerSettings{}
-	err := api.UnmarshalFile(file, &xss)
-	if err != nil {
+func GetDefaultServerSettings(ctx context.Context) (ServerSettings, error) {
+	fail := func(err error) (ServerSettings, error) {
 		return nil, err
+	}
+	file := filepath.Join(helper.Dirs(ctx)["sdtd"], "serverconfig.xml")
+	helper.Logger(ctx).Info("get default server settings", "path", file)
+	xss := XmlServerSettings{}
+	err := helper.UnmarshalFile(ctx, file, &xss)
+	if err != nil {
+		return fail(err)
 	}
 	return xss.Map(), nil
 }
 
 // Parses server settings from the environment (identified as environment variables prefixed with SETTING_).
-func (api *Api) GetEnvServerSettings() ServerSettings {
+func GetEnvServerSettings(ctx context.Context) ServerSettings {
 	data := ServerSettings{}
 	prefix := "SETTING_"
 	for _, item := range os.Environ() {
@@ -173,13 +159,12 @@ func (api *Api) GetEnvServerSettings() ServerSettings {
 		parts[0] = strings.TrimPrefix(parts[0], prefix)
 		data[parts[0]] = parts[1]
 	}
-	api.Logger.Info("get env server settings", "count", len(data))
+	helper.Logger(ctx).Info("get env server settings", "count", len(data))
 	return data
 }
 
-// merges a list of [ServerSettings] (in order) - producing a final [ServerSettings].
-func (api *Api) MergeServerSettings(items ...ServerSettings) ServerSettings {
-	api.Logger.Info("merge server settings", "count", len(items))
+// Merges a list of [ServerSettings] (in order) - producing a final [ServerSettings].
+func MergeServerSettings(items ...ServerSettings) ServerSettings {
 	data := ServerSettings{}
 	for _, item := range items {
 		for k, v := range item {
@@ -192,13 +177,16 @@ func (api *Api) MergeServerSettings(items ...ServerSettings) ServerSettings {
 // Writes server settings (presented as a map) as a server settings XML file stored at [path]
 // Returns an error if the data cannot be serialized into XML
 // Returns an error if the data cannot be written to [path]
-func (api *Api) WriteServerSettings(settings ServerSettings) (string, error) {
-	path := filepath.Join(api.Directories["generated"], "serverconfig.xml")
-	api.Logger.Info("write server settings", "path", path)
-	xmlServerSettings := settings.Xml()
-	err := api.MarshalFile(xmlServerSettings, path)
-	if err != nil {
+func WriteServerSettings(ctx context.Context, settings ServerSettings) (string, error) {
+	fail := func(err error) (string, error) {
 		return "", err
+	}
+	path := filepath.Join(helper.Dirs(ctx)["generated"], "serverconfig.xml")
+	helper.Logger(ctx).Info("write server settings", "path", path)
+	xmlServerSettings := settings.Xml()
+	err := helper.MarshalFile(ctx, xmlServerSettings, path)
+	if err != nil {
+		return fail(err)
 	}
 	return path, nil
 }
@@ -206,11 +194,15 @@ func (api *Api) WriteServerSettings(settings ServerSettings) (string, error) {
 // Downloads and extracts a list of mod urls to the given path.
 // Returns an error if the download fails.
 // Returns an error if the extraction fails.
-func (api *Api) InstallMods(path string, mods ...string) error {
+func InstallMods(ctx context.Context, path string, mods ...string) error {
 	for _, mod := range mods {
-		api.Logger.Info("install mod", "path", path, "mod", mod)
-		err := api.Download(mod, func(downloadPath string) error {
-			return api.Extract(downloadPath, path)
+		helper.Logger(ctx).Info("install mod", "path", path, "mod", mod)
+		key := fmt.Sprintf("mod-%s", filepath.Base(mod))
+		err := helper.CacheFile(ctx, key, path, func(dest string) error {
+			return helper.CreateTempDir(ctx, func(tempDir string) error {
+				downloadPath := filepath.Join(tempDir, filepath.Base(mod))
+				return helper.Extract(ctx, downloadPath, dest)
+			})
 		})
 		if err != nil {
 			return err
@@ -222,64 +214,30 @@ func (api *Api) InstallMods(path string, mods ...string) error {
 // Deletes default mods located in the sdtd 'Mods' folder.  This is done by deleting the folder and recreating it.
 // Returns an error if the initial folder deletion fails.
 // Returns an error if the subsequent folder creation fails.
-func (api *Api) DeleteDefaultMods() error {
-	api.Logger.Info("delete default mods")
-	path := filepath.Join(api.Directories["sdtd"], "Mods")
-	subpaths, err := api.ListDir(path)
+func DeleteDefaultMods(ctx context.Context) error {
+	helper.Logger(ctx).Info("delete default mods")
+	path := filepath.Join(helper.Dirs(ctx)["sdtd"], "Mods")
+	subpaths, err := helper.ListDir(ctx, path)
 	if err != nil {
 		return err
 	}
-	err = api.RemovePaths(subpaths...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return helper.RemovePaths(ctx, subpaths...)
 }
 
 // Downloads sdtd with DepotDownloader
-func (api *Api) DownloadSdtd(manifestId string) error {
-	cachePath := filepath.Join(api.Directories["cache"], manifestId)
-	_, err := os.Lstat(cachePath)
-	exists := true
-	if errors.Is(err, os.ErrNotExist) {
-		exists = false
-		err = nil
-	}
+func DownloadSdtd(ctx context.Context, manifestId string) error {
+	key := fmt.Sprintf("sdtd-%s", manifestId)
+	err := helper.CacheFile(ctx, key, helper.Dirs(ctx)["sdtd"], func(dest string) error {
+		helper.Logger(ctx).Info("download sdtd", "manifest", manifestId)
+		_, err := helper.Command(ctx, []string{"DepotDownloader", "-app", "294420", "-depot", "294422", "-manifest", manifestId, "-dir", dest}, helper.CmdOpts{}).Run()
+		return err
+	})
 	if err != nil {
 		return err
 	}
-	if !exists {
-		api.Logger.Info("download sdtd", "manifest", manifestId)
-		paths, err := api.ListDir(api.Directories["cache"])
-		if err != nil {
-			return err
-		}
-		err = api.RemovePaths(paths...)
-		if err != nil {
-			return err
-		}
-		cacheTmp := filepath.Join(api.Directories["cache"], ".tmp")
-		err = api.DepotDownload("294420", "294422", manifestId, cacheTmp, helperapi.DepotDownloadOpts{})
-		if err != nil {
-			return err
-		}
-		_, err = api.RunCommand([]string{"mv", cacheTmp, cachePath}, helperapi.CmdOpts{})
-		if err != nil {
-			return err
-		}
-	}
-	api.Logger.Info("copy sdtd from cache")
-	_, err = api.RunCommand([]string{"cp", "-R", fmt.Sprintf("%s/.", cachePath), api.Directories["sdtd"]}, helperapi.CmdOpts{})
-	if err != nil {
-		return err
-	}
-	api.Logger.Info("set server binary executable")
-	serverBin := filepath.Join(api.Directories["sdtd"], "7DaysToDieServer.x86_64")
-	err = os.Chmod(serverBin, 0755)
-	if err != nil {
-		return err
-	}
-	return nil
+	helper.Logger(ctx).Info("set server binary executable")
+	serverBin := filepath.Join(helper.Dirs(ctx)["sdtd"], "7DaysToDieServer.x86_64")
+	return os.Chmod(serverBin, 0755)
 }
 
 // EntrypointConfig is the configuration for the
@@ -293,70 +251,70 @@ type EntrypointConfig struct {
 // Performs initial setup and the launches the seven days to die server.
 // Assumes that the local runtime environment has been bootstrapped.
 // Returns an error if any part of the process fails.
-func Entrypoint(ctx context.Context, api Api) error {
-	api.Logger.Info("entrypoint")
+func Entrypoint(ctx context.Context) error {
+	helper.Logger(ctx).Info("entrypoint")
 
 	config := EntrypointConfig{}
-	err := api.ParseEnv(&config)
+	err := helper.ParseEnv(ctx, &config)
 	if err != nil {
 		return err
 	}
 
-	err = api.DownloadSdtd(config.ManifestId)
+	err = DownloadSdtd(ctx, config.ManifestId)
 	if err != nil {
 		return err
 	}
 
 	if config.DeleteDefaultMods {
-		err := api.DeleteDefaultMods()
+		err := DeleteDefaultMods(ctx)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = api.InstallMods(api.Directories["sdtd"], config.RootUrls...)
+	err = InstallMods(ctx, helper.Dirs(ctx)["sdtd"], config.RootUrls...)
 	if err != nil {
 		return err
 	}
 
-	err = api.InstallMods(filepath.Join(api.Directories["sdtd"], "Mods"), config.ModUrls...)
+	err = InstallMods(ctx, filepath.Join(helper.Dirs(ctx)["sdtd"], "Mods"), config.ModUrls...)
 	if err != nil {
 		return err
 	}
 
-	defaultSettings, err := api.GetDefaultServerSettings()
+	defaultSettings, err := GetDefaultServerSettings(ctx)
 	if err != nil {
 		return err
 	}
-	settingsFile, err := api.WriteServerSettings(api.MergeServerSettings(
+	settingsFile, err := WriteServerSettings(ctx, MergeServerSettings(
 		defaultSettings,
 		ServerSettings{
 			"WebDashboardEnabled": "true",
 		},
-		api.GetEnvServerSettings(),
+		GetEnvServerSettings(ctx),
 		ServerSettings{
-			"TelnetEnabled":    "true",                  // force telnet to be enabled (for graceful shutdown and health checks)
-			"TelnetPort":       "8081",                  // force telnet port to match exposed docker port
-			"UserDataFolder":   api.Directories["data"], // force user data folder to be located at [folderData]
-			"WebDashboardPort": "8080",                  // force web dashboard port to match exposed docker port
+			"TelnetEnabled":    "true",                   // force telnet to be enabled (for graceful shutdown and health checks)
+			"TelnetPort":       "8081",                   // force telnet port to match exposed docker port
+			"UserDataFolder":   helper.Dirs(ctx)["data"], // force user data folder to be located at [folderData]
+			"WebDashboardPort": "8080",                   // force web dashboard port to match exposed docker port
 		},
 	))
 	if err != nil {
 		return err
 	}
 
-	return api.StartServer(settingsFile)
+	return StartServer(ctx, settingsFile)
 }
 
 // Checks the health of the seven days to die server by attempting to connect to the server's telnet port.
 // If the connection fails, returns an error
-func HealthCheck(ctx context.Context, api Api) error {
+func CheckHealth(ctx context.Context) error {
 	healthy := false
-	err := api.DialServer(func(conn net.Conn) error {
+	err := DialServer(ctx, func(conn Conn) error {
 		healthy = true
 		return nil
 	})
-	api.Logger.Info("health check", "healthy", healthy)
+	helper.Logger(ctx).Info("health check", "healthy", healthy)
 	return err
 }
 
@@ -366,15 +324,15 @@ var Version string
 // The main function for the entrypoint.
 func main() {
 	wd, _ := os.Getwd()
-	(&helper.Helper{
-		Directories: map[string]string{
+	(&helper.Entrypoint{
+		Dirs: map[string]string{
 			"cache":     filepath.Join(wd, "cache"),
 			"data":      filepath.Join(wd, "data"),
 			"generated": filepath.Join(wd, "generated"),
 			"sdtd":      filepath.Join(wd, "sdtd"),
 		},
-		Entrypoint:  RunCallback(Entrypoint),
-		HealthCheck: RunCallback(HealthCheck),
+		CheckHealth: CheckHealth,
+		Main:        Entrypoint,
 		Version:     Version,
 	}).Run()
 }
