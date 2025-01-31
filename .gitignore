@@ -1,5 +1,9 @@
 .vscode/*
 !.vscode/launch.json.template
 .tmp
+cache
+generated
+data
+sdtd
 DepotDownloader
 entrypoint

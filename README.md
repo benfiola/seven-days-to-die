@@ -41,9 +41,9 @@ The docker image is configured purely through the environment:
 | SETTING\_[Key]      |         | Defines a property named `[Key]` in the `serverconfig.xml` file                                                                                          |
 | UID                 | 1000    | The UID to run the server as                                                                                                                             |
 
-## Downloading SDTD + Caching
+## Downloading 7DTD + Caching
 
-On startup, the docker image will attempt to download the SDTD dedicated server version defined by the `MANIFEST_ID` environmnent variable.
+On startup, the docker image will attempt to download the 7DTD dedicated server version defined by the `MANIFEST_ID` environmnent variable.
 
 To prevent unnecessary rebuilds, this entrypoint supports file caching. If you mount a local path to `/cache`, and set `CACHE_ENABLED="true"` - the file cache is enabled. You can customize file cache sizes by setting the `CACHE_SIZE_LIMIT` environment variable to a size (in megabytes).
 
