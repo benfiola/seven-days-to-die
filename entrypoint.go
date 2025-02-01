@@ -201,6 +201,10 @@ func InstallMods(ctx context.Context, path string, mods ...string) error {
 		err := helper.CacheFile(ctx, key, path, func(dest string) error {
 			return helper.CreateTempDir(ctx, func(tempDir string) error {
 				downloadPath := filepath.Join(tempDir, filepath.Base(mod))
+				err := helper.Download(ctx, mod, downloadPath)
+				if err != nil {
+					return err
+				}
 				return helper.Extract(ctx, downloadPath, dest)
 			})
 		})
