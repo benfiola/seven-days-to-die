@@ -17,7 +17,7 @@ RUN apt -y update && \
 FROM docker.io/ubuntu:noble
 WORKDIR /
 RUN apt -y update && \
-    apt -y install curl gosu tar unrar-free zip && \
+    apt -y install curl gosu squashfs-tools tar unrar-free zip && \
     userdel ubuntu && \
     groupadd --gid=1000 server && \
     useradd --gid=server --system --uid=1000 --create-home server && \
