@@ -25,6 +25,18 @@
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
       "version": "1.23.4"
+    },
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "packages": [
+        "curl",
+        "gosu",
+        "make",
+        "squashfs-tools",
+        "tar",
+        "unrar-free",
+        "unzip",
+        "vim"
+      ]
     }
   },
   "image": "ubuntu:noble",
