@@ -5,24 +5,33 @@ ADD go.mod go.mod
 ADD go.sum go.sum
 ADD Makefile Makefile
 ADD version.txt version.txt
-RUN make build-entrypoint
+RUN <<EOF
+make build-entrypoint
+EOF
 
 FROM docker.io/ubuntu:noble AS depot-downloader
 WORKDIR /
 ADD Makefile Makefile
-RUN apt -y update && \
-    apt -y install curl make unzip && \
-    make install-depot-downloader
+RUN <<EOF
+apt -y update
+apt -y install curl make unzip
+make install-depot-downloader
+EOF
 
 FROM docker.io/ubuntu:noble
 WORKDIR /
-RUN apt -y update && \
-    apt -y install curl gosu squashfs-tools tar unrar-free unzip && \
-    userdel ubuntu && \
-    groupadd --gid=1000 server && \
-    useradd --gid=server --system --uid=1000 --create-home server && \
-    mkdir -p /cache /data /generated /sdtd && \
-    chown -R server:server /cache /data /generated /sdtd
+RUN <<EOF
+# install dependencies
+apt -y update
+apt -y install curl gosu squashfs-tools tar unrar-free unzip
+userdel ubuntu
+# create user
+groupadd --gid=1000 server
+useradd --gid=server --system --uid=1000 --create-home server
+# create container paths
+mkdir -p /cache /data /generated /sdtd
+chown -R server:server /cache /data /generated /sdtd
+EOF
 COPY --from=entrypoint /entrypoint /usr/local/bin/entrypoint
 COPY --from=depot-downloader /DepotDownloader /usr/local/bin/DepotDownloader
 ENTRYPOINT ["entrypoint"]
