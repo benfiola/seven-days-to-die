@@ -1,5 +1,5 @@
-github.com/benfiola/game-server-helper v0.0.0-20250131201848-5d2dfbc20251 h1:aCO2x0yuxWTGlyMe+yEW3uIjlkyrLZd1ZTTAemm2SfE=
-github.com/benfiola/game-server-helper v0.0.0-20250131201848-5d2dfbc20251/go.mod h1:DPBcfqEKjahVzVoHpU8Z0MvUYX/TZUzR+FsGGF63oDE=
+github.com/benfiola/game-server-helper v0.0.0-20250627173051-37b90687d86d h1:iSlwNDatp6Y2eyj5FvJxXHN+5c85UCAtG1gwdULmyfM=
+github.com/benfiola/game-server-helper v0.0.0-20250627173051-37b90687d86d/go.mod h1:DPBcfqEKjahVzVoHpU8Z0MvUYX/TZUzR+FsGGF63oDE=
 github.com/caarlos0/env/v11 v11.3.1 h1:cArPWC15hWmEt+gWk7YBi7lEXTXCvpaSdCiZE2X5mCA=
 github.com/caarlos0/env/v11 v11.3.1/go.mod h1:qupehSf/Y0TUTsxKywqRt/vJjN5nz6vauiYEUUr8P4U=
 github.com/evanphx/json-patch/v5 v5.9.0 h1:kcBlZQbplgElYIlo/n1hJbls2z/1awpXxpRi0/FOJfg=

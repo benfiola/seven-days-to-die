@@ -2,7 +2,7 @@ module github.com/benfiola/seven-days-to-die
 
 go 1.23.4
 
-require github.com/benfiola/game-server-helper v0.0.0-20250131201848-5d2dfbc20251
+require github.com/benfiola/game-server-helper v0.0.0-20250627173051-37b90687d86d
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1 // indirect
