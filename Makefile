@@ -1,4 +1,4 @@
-DEPOT_DOWNLOADER_VERSION := 2.7.4
+DEPOT_DOWNLOADER_VERSION := 3.4.0
 
 cwd := $(shell pwd)
 temp_dir = $(cwd)/.tmp
