@@ -6,7 +6,7 @@ services:
       # use local folder 'cache' as a cache
       - ./cache:/cache
     environment:
-      MANIFEST_ID: "6852366042385286885"
+      MANIFEST_ID: "4281760538349557882"
       # refer to ./default-serverconfig.xml for property names and values
       SETTING_ServerName: example
       SETTING_Region: NorthAmericaWest
