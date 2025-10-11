@@ -23,7 +23,7 @@ Here are some basic deployment examples:
 - [docker-compose](./examples/docker-compose.yaml)
 - [kubernetes](./examples/kubernetes.yaml)
 
-Additionally, [here](./examples/default-serverconfig.xml) is the default `serverconfig.xml` that ships with the game (as of manifest `6852366042385286885`).
+Additionally, [here](./examples/default-serverconfig.xml) is the default `serverconfig.xml` that ships with the game (as of manifest `4281760538349557882`).
 
 ## Configuration
 

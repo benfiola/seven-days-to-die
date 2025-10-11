@@ -18,7 +18,7 @@ spec:
           image: docker.io/benfiola/seven-days-to-die:latest
           env:
             - name: MANIFEST_ID
-              value: "6852366042385286885"
+              value: "4281760538349557882"
             # refer to ./default-serverconfig.xml for property names and values
             - name: SETTING_ServerName
               value: example
