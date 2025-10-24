@@ -265,6 +265,7 @@ func Entrypoint(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	config.AutoRestartMessage = strings.ReplaceAll(config.AutoRestartMessage, "\"", "\"\"")
 
 	err = DownloadSdtd(ctx, config.ManifestId)
 	if err != nil {
