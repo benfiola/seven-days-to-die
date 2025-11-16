@@ -246,10 +246,12 @@ func DownloadSdtd(ctx context.Context, manifestId string) error {
 
 // EntrypointConfig is the configuration for the
 type EntrypointConfig struct {
-	DeleteDefaultMods bool     `env:"DELETE_DEFAULT_MODS"`
-	ManifestId        string   `env:"MANIFEST_ID"`
-	ModUrls           []string `env:"MOD_URLS"`
-	RootUrls          []string `env:"ROOT_URLS"`
+	DeleteDefaultMods  bool           `env:"DELETE_DEFAULT_MODS"`
+	ManifestId         string         `env:"MANIFEST_ID"`
+	ModUrls            []string       `env:"MOD_URLS"`
+	RootUrls           []string       `env:"ROOT_URLS"`
+	AutoRestart        *time.Duration `env:"AUTO_RESTART"`
+	AutoRestartMessage string         `env:"AUTO_RESTART_MESSAGE" envDefault:"Restarting server in 1 minute"`
 }
 
 // Performs initial setup and the launches the seven days to die server.
@@ -263,6 +265,7 @@ func Entrypoint(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	config.AutoRestartMessage = strings.ReplaceAll(config.AutoRestartMessage, "\"", "\"\"")
 
 	err = DownloadSdtd(ctx, config.ManifestId)
 	if err != nil {
@@ -306,7 +309,17 @@ func Entrypoint(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
+	if config.AutoRestart != nil {
+		go func() {
+			time.Sleep(*config.AutoRestart - time.Minute)
+			DialServer(ctx, func(conn Conn) error {
+				_, err := conn.netConn.Write([]byte(fmt.Sprintf("say \"%s\"\n", config.AutoRestartMessage)))
+				return err
+			})
+			time.Sleep(time.Minute)
+			ShutdownServer(ctx)
+		}()
+	}
 	return StartServer(ctx, settingsFile)
 }
 
