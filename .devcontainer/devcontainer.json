@@ -23,6 +23,7 @@
     }
   },
   "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker": {},
     "ghcr.io/devcontainers/features/go:1": {
       "version": "1.23.4"
     },

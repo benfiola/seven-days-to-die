@@ -90,7 +90,7 @@ func StartServer(ctx context.Context, config string) error {
 	})
 	defer unregister()
 	env := append(os.Environ(), "LD_LIBRARY_PATH=.")
-	cmd := []string{"./7DaysToDieServer.x86_64", "-batchmode", fmt.Sprintf("-configfile=%s", config), "-dedicated", "-logfile", "-nographics", "-quit"}
+	cmd := []string{"./7DaysToDieServer.x86_64", "-batchmode", fmt.Sprintf("-configfile=%s", config), "-dedicated", "-logfile", "-", "-nographics", "-quit"}
 	_, err := helper.Command(ctx, cmd, helper.CmdOpts{Attach: true, Cwd: helper.Dirs(ctx)["sdtd"], Env: env, IgnoreSignals: true}).Run()
 	cmdFinished <- true
 	return err
